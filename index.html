@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rüya & Hüseyin Düğün Fotoğrafları</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+</head>
+<body>
+    <h1>Rüya & Hüseyin Düğün Fotoğrafları</h1>
+    <h2>Fotoğraf Yükleme</h2>
+    <form id="photoForm">
+        <label for="name">Adınız Soyadınız:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="file">Fotoğraf Seçin:</label>
+        <input type="file" id="file" required><br><br>
+        <button type="submit">Yükle</button>
+    </form>
+
+    <h2>Yüklenen Fotoğraflar</h2>
+    <div id="photoList"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCCapg1w_XmwBM16kpbkO5FfHDomxCWlwQ",
+            authDomain: "wedding-photos-ruya-huseyin.firebaseapp.com",
+            projectId: "wedding-photos-ruya-huseyin",
+            storageBucket: "wedding-photos-ruya-huseyin.firebasestorage.app",
+            messagingSenderId: "416637618961",
+            appId: "1:416637618961:web:449ebaf099caa511791ab0",
+            measurementId: "G-4Y7FT9LYRC"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+
+        const photoForm = document.getElementById('photoForm');
+        const photoList = document.getElementById('photoList');
+
+        photoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const file = document.getElementById('file').files[0];
+
+            const storageRef = storage.ref('photos/' + file.name);
+            const uploadTask = storageRef.put(file);
+
+            uploadTask.on('state_changed', (snapshot) => {
+                // Handle upload progress
+            }, (error) => {
+                console.log('Error uploading file:', error);
+            }, () => {
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    // Save to photo list
+                    const imgElement = document.createElement('img');
+                    imgElement.src = downloadURL;
+                    imgElement.style.width = '200px';
+                    imgElement.style.margin = '10px';
+
+                    photoList.appendChild(imgElement);
+                });
+            });
+        });
+
+        // Fetch uploaded photos from Firebase Storage
+        const fetchPhotos = async () => {
+            const storageRef = storage.ref('photos');
+            const photos = await storageRef.listAll();
+            photos.items.forEach((photoRef) => {
+                photoRef.getDownloadURL().then((url) => {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = url;
+                    imgElement.style.width = '200px';
+                    imgElement.style.margin = '10px';
+
+                    photoList.appendChild(imgElement);
+                });
+            });
+        };
+
+        fetchPhotos();
+    </script>
+</body>
+</html>
