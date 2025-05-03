@@ -4,28 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rüya & Hüseyin Düğün Fotoğrafları</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <style>
         body { font-family: sans-serif; text-align: center; }
-        img { width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+        img { width: 200px; margin: 10px; border-radius: 10px; border: 2px solid #ccc; }
+        #photoList { display: flex; flex-wrap: wrap; justify-content: center; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
 </head>
 <body>
     <h1>Rüya & Hüseyin Düğün Fotoğrafları</h1>
     <h2>Fotoğraf Yükleme</h2>
     <form id="photoForm">
-        <label for="name">Adınız Soyadınız:</label><br>
+        <label for="name">Adınız Soyadınız:</label>
         <input type="text" id="name" name="name" required><br><br>
-        <label for="file">Fotoğraf Seçin:</label><br>
-        <input type="file" id="file" accept="image/*" required><br><br>
+        <label for="file">Fotoğraf Seçin:</label>
+        <input type="file" id="file" required><br><br>
         <button type="submit">Yükle</button>
     </form>
 
-    <h2>Yüklediğiniz Fotoğraflar</h2>
+    <h2>Yüklenen Fotoğraflar</h2>
     <div id="photoList"></div>
 
     <script>
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyCCapg1w_XmwBM16kpbkO5FfHDomxCWlwQ",
             authDomain: "wedding-photos-ruya-huseyin.firebaseapp.com",
@@ -42,40 +44,57 @@
         const photoForm = document.getElementById('photoForm');
         const photoList = document.getElementById('photoList');
 
-        let uploadedPhotos = [];
-
+        // Fotoğrafları yükle
         photoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = document.getElementById('name').value;
             const file = document.getElementById('file').files[0];
+            if (!file) {
+                alert("Lütfen bir fotoğraf seçin.");
+                return;
+            }
 
-            const filePath = 'user_uploads/' + Date.now() + '_' + file.name;
-            const storageRef = storage.ref(filePath);
+            const timestamp = Date.now();
+            const storageRef = storage.ref('photos/' + timestamp + '_' + name + '_' + file.name);
             const uploadTask = storageRef.put(file);
 
-            uploadTask.on('state_changed', null,
+            uploadTask.on('state_changed', 
+                (snapshot) => { /* İlerleme göstergesi istersen buraya ekleyebilirim */ },
                 (error) => {
-                    console.error('Yükleme hatası:', error);
-                    alert('Yükleme başarısız oldu.');
+                    console.log('Yükleme hatası:', error);
+                    alert('Yükleme sırasında bir hata oluştu.');
                 },
                 () => {
                     uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                        uploadedPhotos.push(downloadURL);
-                        displayPhotos();
+                        addPhotoToList(downloadURL);
                         alert('Fotoğraf başarıyla yüklendi!');
                     });
                 }
             );
         });
 
-        function displayPhotos() {
+        // Fotoğrafları listele
+        const fetchPhotos = async () => {
             photoList.innerHTML = '';
-            uploadedPhotos.forEach((url) => {
-                const img = document.createElement('img');
-                img.src = url;
-                photoList.appendChild(img);
+            const listRef = storage.ref('photos');
+            const res = await listRef.listAll();
+            res.items.forEach(async (itemRef) => {
+                const url = await itemRef.getDownloadURL();
+                addPhotoToList(url);
             });
-        }
+        };
+
+        // Fotoğrafı listeye ekle
+        const addPhotoToList = (url) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Yüklenen Fotoğraf';
+            img.onclick = () => window.open(url, '_blank');
+            photoList.appendChild(img);
+        };
+
+        // Sayfa yüklendiğinde fotoğrafları getir
+        fetchPhotos();
     </script>
 </body>
 </html>
